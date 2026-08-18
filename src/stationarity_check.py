@@ -1,18 +1,30 @@
-import pandas as pd
+"""Stationarity checks for the Air Passengers series (Augmented Dickey-Fuller test)."""
+
+# %%
 from statsmodels.tsa.stattools import adfuller
 
+from data_loader import load_air_passengers
 
-df = pd.read_csv("data/air_passengers.csv")
-df['date'] = pd.to_datetime(df['year'].astype(str) + '-' + df['month'], format='%Y-%B')
-df = df.set_index('date')
 
-# Run the Augmented Dickey-Fuller test on the raw series
-result = adfuller(df['passengers'])
+def run_adf_test(series, label: str) -> None:
+    result = adfuller(series)
+    print(f"--- ADF Test: {label} ---")
+    print(f"ADF Statistic: {result[0]:.4f}")
+    print(f"p-value: {result[1]:.4f}")
+    conclusion = "stationary" if result[1] < 0.05 else "NOT stationary"
+    print(f"=> Series is {conclusion}\n")
 
-print("--- ADF Test: Raw series ---")
-print(f"ADF Statistic: {result[0]:.4f}")
-print(f"p-value: {result[1]:.4f}")
-if result[1] < 0.05:
-    print("=> Series is stationary")
-else:
-    print("=> Series is NOT stationary")
+
+# %%
+df = load_air_passengers()
+
+# %%
+run_adf_test(df["passengers"], "Raw series")
+
+# %%
+# Seasonal differencing (period=12) to remove trend and seasonality
+df["passengers_diff"] = df["passengers"].diff(12)
+df_diff = df["passengers_diff"].dropna()
+
+run_adf_test(df_diff, "Differenced series (seasonal, period=12)")
+
